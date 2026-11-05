@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Segmentace denních profilů spotřeby elektřiny</title>
+<style>
+  :root {
+    --bg: #101114;
+    --panel: #181c22;
+    --line: #2c313a;
+    --text: #f4f2ec;
+    --muted: #c4bfb6;
+    --faint: #8f8a82;
+    --accent: #e6a23c;
+    --night: #9eb0c4;
+    --rest: #3a4150;
+    --win: #221c14;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); }
+  body {
+    font-family: Inter, "Source Sans 3", "Segoe UI", "Noto Sans", "Liberation Sans", sans-serif;
+    font-size: clamp(17px, 1.35vw, 22px);
+    line-height: 1.35;
+    letter-spacing: -0.011em;
+  }
+
+  .deck { height: 100%; display: flex; flex-direction: column; }
+  .progress { height: 4px; background: #23272f; flex: none; }
+  .progress > span { display: block; height: 100%; width: 0; background: var(--accent); }
+
+  .stage { flex: 1; min-height: 0; position: relative; }
+
+  .slide {
+    display: none;
+    height: 100%;
+    padding: 6.5vh 7.5vw 11vh;
+    flex-direction: column;
+    justify-content: center;
+    gap: 1.35rem;
+    overflow: auto;
+  }
+  .slide.is-active { display: flex; }
+
+  .kicker {
+    margin: 0;
+    color: var(--accent);
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+
+  h1 {
+    margin: 0;
+    font-size: clamp(2.15rem, 4.5vw, 4.15rem);
+    font-weight: 600;
+    letter-spacing: -0.038em;
+    line-height: 1.02;
+    max-width: 18ch;
+  }
+  .slide.title h1 { max-width: 16ch; }
+
+  .lead {
+    margin: 0;
+    max-width: 36ch;
+    color: var(--muted);
+    font-size: clamp(1.15rem, 1.8vw, 1.7rem);
+    line-height: 1.35;
+  }
+
+  .meta {
+    margin: 0.4rem 0 0;
+    color: var(--faint);
+    font-size: 0.95rem;
+  }
+
+  ol.agenda {
+    list-style: none;
+    margin: 0.4rem 0 0;
+    padding: 0;
+    display: grid;
+    gap: 0.85rem;
+    max-width: 42rem;
+  }
+  ol.agenda li {
+    display: grid;
+    grid-template-columns: 3.2rem 1fr;
+    gap: 0.9rem;
+    align-items: baseline;
+    font-size: clamp(1.25rem, 2vw, 1.85rem);
+    letter-spacing: -0.02em;
+  }
+  ol.agenda span {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+  }
+
+  .ask {
+    margin: 0;
+    max-width: 20ch;
+    font-size: clamp(2rem, 4vw, 3.5rem);
+    font-weight: 600;
+    letter-spacing: -0.035em;
+    line-height: 1.08;
+  }
+  .ask-sub {
+    margin: 0;
+    max-width: 38rem;
+    color: var(--muted);
+    font-size: clamp(1.1rem, 1.6vw, 1.45rem);
+  }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1rem;
+    margin-top: 0.3rem;
+  }
+  .stat {
+    padding-top: 0.85rem;
+    border-top: 1px solid var(--line);
+  }
+  .stat b {
+    display: block;
+    font-size: clamp(1.8rem, 3vw, 2.7rem);
+    font-weight: 600;
+    letter-spacing: -0.04em;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+  .stat span {
+    display: block;
+    margin-top: 0.45rem;
+    color: var(--muted);
+    font-size: 0.92rem;
+  }
+
+  ul.clean {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.7rem;
+    max-width: 46rem;
+  }
+  ul.clean li {
+    padding-left: 1.15rem;
+    position: relative;
+    color: var(--text);
+    font-size: clamp(1.05rem, 1.45vw, 1.35rem);
+  }
+  ul.clean li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0.55em;
+    width: 0.45rem;
+    height: 2px;
+    background: var(--accent);
+  }
+
+  .flow {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr auto 1fr;
+    gap: 0.8rem;
+    align-items: stretch;
+    max-width: 52rem;
+    margin: 0.2rem 0 0.3rem;
+  }
+  .flow .step {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    padding: 1.1rem 1.15rem 1rem;
+  }
+  .flow .step b {
+    display: block;
+    font-size: clamp(1.25rem, 1.8vw, 1.6rem);
+    letter-spacing: -0.03em;
+  }
+  .flow .step span {
+    display: block;
+    margin-top: 0.35rem;
+    color: var(--muted);
+    font-size: 0.92rem;
+  }
+  .arrow {
+    align-self: center;
+    color: var(--accent);
+    font-size: 1.4rem;
+  }
+
+  .pair {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+    max-width: 58rem;
+  }
+  .pair article {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    padding: 1.25rem 1.35rem 1.15rem;
+  }
+  .pair h2 {
+    margin: 0 0 0.75rem;
+    font-size: clamp(1.35rem, 2vw, 1.75rem);
+    letter-spacing: -0.03em;
+  }
+  .pair ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 0.55rem; }
+  .pair li { color: var(--muted); font-size: 1.02rem; }
+  .shared {
+    margin: 0;
+    color: var(--text);
+    font-size: 1.05rem;
+  }
+  .shared b { color: var(--accent); font-weight: 600; }
+
+  .kgrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    max-width: 40rem;
+  }
+  .kbox {
+    border-top: 1px solid var(--line);
+    padding-top: 0.8rem;
+  }
+  .kbox.pick { border-top-color: var(--accent); }
+  .kbox em {
+    display: block;
+    font-style: normal;
+    color: var(--faint);
+    font-size: 0.85rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .kbox strong {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: clamp(2rem, 3.4vw, 3rem);
+    letter-spacing: -0.04em;
+    font-variant-numeric: tabular-nums;
+  }
+  .kbox.pick strong { color: var(--accent); }
+
+  .shapes {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+  }
+  .shape {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    padding: 1.05rem 1.1rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+  .shape .pct {
+    margin: 0;
+    color: var(--faint);
+    font-size: 0.85rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .shape h2 {
+    margin: 0;
+    font-size: clamp(1.2rem, 1.6vw, 1.5rem);
+    letter-spacing: -0.03em;
+  }
+  .shape .kwh {
+    margin: 0;
+    font-size: clamp(1.6rem, 2.3vw, 2.1rem);
+    font-weight: 600;
+    letter-spacing: -0.04em;
+    font-variant-numeric: tabular-nums;
+  }
+  .mix {
+    display: flex;
+    height: 10px;
+    margin: 0.45rem 0 0.35rem;
+    background: var(--rest);
+  }
+  .mix i { display: block; height: 100%; }
+  .mix .n { background: var(--night); }
+  .mix .r { background: var(--rest); }
+  .mix .e { background: var(--accent); }
+  .shape ul { margin: 0.25rem 0 0; padding: 0; list-style: none; }
+  .shape li { color: var(--muted); font-size: 0.92rem; margin-top: 0.2rem; }
+
+  .legend {
+    display: flex;
+    gap: 1.25rem;
+    color: var(--muted);
+    font-size: 0.88rem;
+    margin: 0;
+  }
+  .legend i {
+    display: inline-block;
+    width: 0.7rem;
+    height: 0.7rem;
+    margin-right: 0.4rem;
+    vertical-align: -1px;
+  }
+  .legend .n { background: var(--night); }
+  .legend .r { background: var(--rest); }
+  .legend .e { background: var(--accent); }
+
+  table {
+    width: 100%;
+    max-width: 58rem;
+    border-collapse: collapse;
+    font-variant-numeric: tabular-nums;
+  }
+  th, td {
+    text-align: right;
+    padding: 0.85rem 0.9rem;
+    border-bottom: 1px solid var(--line);
+    font-size: clamp(1rem, 1.4vw, 1.25rem);
+  }
+  th:first-child, td:first-child { text-align: left; }
+  th {
+    color: var(--faint);
+    font-weight: 500;
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  th small {
+    display: block;
+    margin-top: 0.2rem;
+    letter-spacing: 0;
+    text-transform: none;
+    font-size: 0.72rem;
+  }
+  tr.win td { background: var(--win); }
+  tr.win td:first-child { color: var(--accent); }
+  .call {
+    margin: 0;
+    font-size: clamp(1.05rem, 1.4vw, 1.3rem);
+  }
+  .call b {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+  }
+  .fine {
+    margin: 0;
+    color: var(--faint);
+    font-size: 0.86rem;
+    max-width: 52rem;
+  }
+
+  .strip {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 8rem));
+    gap: 1.5rem;
+  }
+  .strip b {
+    display: block;
+    font-size: clamp(1.8rem, 2.8vw, 2.5rem);
+    letter-spacing: -0.04em;
+    font-variant-numeric: tabular-nums;
+  }
+  .strip span { color: var(--muted); font-size: 0.92rem; }
+
+  .close h1 { max-width: 8ch; font-size: clamp(3.2rem, 7vw, 6rem); }
+  .verdict {
+    margin: 0;
+    max-width: 28ch;
+    font-size: clamp(1.25rem, 2vw, 1.7rem);
+    line-height: 1.3;
+    color: var(--muted);
+  }
+
+  footer.chrome {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.85rem 7.5vw 1.05rem;
+    color: var(--faint);
+    font-size: 0.85rem;
+    background: var(--bg);
+    border-top: 1px solid var(--line);
+  }
+  .counter { font-variant-numeric: tabular-nums; letter-spacing: 0.08em; }
+  .hints { flex: 1; }
+  .nav { display: flex; gap: 0.5rem; }
+  button {
+    font: inherit;
+    font-size: 0.95rem;
+    color: var(--text);
+    background: transparent;
+    border: 1px solid var(--line);
+    padding: 0.45rem 0.9rem;
+    cursor: pointer;
+  }
+  button:hover { border-color: var(--accent); }
+  button:disabled { opacity: 0.35; cursor: default; }
+  button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .notes {
+    display: none;
+    position: fixed;
+    left: 7.5vw;
+    right: 22rem;
+    bottom: 4.6rem;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    padding: 0.9rem 1.1rem 1rem;
+    max-width: 46rem;
+  }
+  .notes.is-open { display: block; }
+  .notes p.label {
+    margin: 0 0 0.35rem;
+    color: var(--accent);
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+  .notes p.body { margin: 0; color: var(--muted); font-size: 0.98rem; line-height: 1.4; }
+
+  @media (max-width: 900px) {
+    .stats, .shapes, .pair, .kgrid, .strip { grid-template-columns: 1fr; }
+    .flow { grid-template-columns: 1fr; }
+    .arrow { transform: rotate(90deg); justify-self: center; }
+    .notes { right: 7.5vw; }
+    h1, .ask { max-width: none; }
+  }
+</style>
+</head>
+<body>
+<div class="deck">
+  <div class="progress" aria-hidden="true"><span id="bar"></span></div>
+  <div class="stage">
+
+    <section class="slide title is-active" data-notes="Dobrý den. Jsem Tobias Hočevar a tohle je semestrálka ze strojového učení. Vzal jsem dny londýnských domácností a koukal, jestli se podle tvaru odběru samy složí do skupin. Srovnával jsem k-means a Wardovo shlukování.">
+      <p class="kicker">Strojové učení 1 · varianta B</p>
+      <h1>Segmentace denních profilů spotřeby elektřiny</h1>
+      <p class="lead">k-means a Wardovo hierarchické shlukování na dnech londýnských domácností</p>
+      <p class="meta">Rok 2013 · Tobias Hočevar</p>
+    </section>
+
+    <section class="slide" data-notes="Nejdřív odkud data jsou a jak z měření udělám jeden den. Pak dva postupy na stejné matici. Nakonec tři tvary a kterému číslu víc věřím.">
+      <p class="kicker">Osnova</p>
+      <h1>Co budu říkat</h1>
+      <ol class="agenda">
+        <li><span>01</span>Odkud data jsou a co je jeden den</li>
+        <li><span>02</span>Dva postupy na stejné matici</li>
+        <li><span>03</span>Tři tvary, které z toho vyjdou</li>
+        <li><span>04</span>Kterému postupu na tomhle vzorku víc věřím</li>
+      </ol>
+    </section>
+
+    <section class="slide" data-notes="Správné štítky k dnům nejsou, takže to není klasifikace a neuronové sítě tu nejsou. Ptám se, jestli se opakuje tvar dne, a který z těch dvou postupů ho na stejných datech popíše líp. Líp pro mě znamená vyšší siluetu, nižší Davies–Bouldin, stabilnější řez a čitelný průměr.">
+      <p class="kicker">Otázka</p>
+      <p class="ask">Dá se den domácnosti zařadit podle toho, kdy bere proud?</p>
+      <p class="ask-sub">Čekal jsem ranní špičku, večerní špičku nebo spíš plochý den. A udělá to líp k-means, nebo Ward?</p>
+    </section>
+
+    <section class="slide" data-notes="Zdroj je Low Carbon London, veřejně London Datastore. Celý archiv má desítky gigabajtů, já beru čtyři souvislé bloky. Tarif je jen Std. Dynamický dToU, kde se v roce 2013 měnila cena přes den, v těch blocích není. Poslední domácnost v bloku 3 je utnutá, MAC000131, tu vynechávám. Těch pět tisíc dní pokrývá 107 ze 108 domácností.">
+      <p class="kicker">Data</p>
+      <h1>Odkud jsou data</h1>
+      <div class="stats">
+        <div class="stat"><b>108</b><span>domácností</span></div>
+        <div class="stat"><b>35&nbsp;959</b><span>celých dní v roce 2013</span></div>
+        <div class="stat"><b>5&nbsp;000</b><span>dní ve vzorku, semeno 42</span></div>
+        <div class="stat"><b>Std</b><span>jen standardní tarif</span></div>
+      </div>
+      <ul class="clean">
+        <li>Chytré elektroměry, půlhodinová spotřeba v kWh. Projekt Low Carbon London.</li>
+        <li>Domácnosti nejsou los z 5&nbsp;567. Je to souvislý úsek bloků 0–3.</li>
+      </ul>
+    </section>
+
+    <section class="slide" data-notes="Hodina 0 je součet 00:00 a 00:30, hodina 23 je 23:00 a 23:30. Když v dni chybí razítko, je tam Null, záporná hodnota nebo duplicita, den zahodím. Doplněný průměr by byla hodnota, kterou elektroměr nezměřil. Nulový den taky letí pryč, protože ho není čím vydělit. Po dělení má každý vektor délku 1, takže dva dny se stejným tvarem a jinou úrovní spadnou k sobě.">
+      <p class="kicker">Jednotka</p>
+      <h1>Co je jeden den</h1>
+      <div class="flow">
+        <div class="step"><b>48 půlhodin</b><span>surové kWh</span></div>
+        <div class="arrow" aria-hidden="true">→</div>
+        <div class="step"><b>24 hodin</b><span>součet dvou půlek</span></div>
+        <div class="arrow" aria-hidden="true">→</div>
+        <div class="step"><b>délka 1</b><span>dělení L2 normou</span></div>
+      </div>
+      <ul class="clean">
+        <li>Jednotka je domácnost-den. Den s dírou se nedoplňuje.</li>
+        <li>Shluk má chytit tvar, ne velikost bytu.</li>
+        <li>Den v týdnu a roční období do matice nepatří. Koukám na ně až potom.</li>
+      </ul>
+    </section>
+
+    <section class="slide" data-notes="Obě metody dostanou tutéž matici a totéž k. U k-means je hlavní model deset startů a semeno 42. Jiné semeno není druhá metoda, to je jen kontrola stability. Ward staví strom na celé matici a řez ho nechá na třech shlucích. Dendrogram v práci ukazuje jen posledních dvanáct spojení.">
+      <p class="kicker">Metody</p>
+      <h1>Dva postupy, stejná pravidla</h1>
+      <div class="pair">
+        <article>
+          <h2>k-means</h2>
+          <ul>
+            <li>Den jde k nejbližšímu středu.</li>
+            <li>Střed se posune do průměru svých dní.</li>
+            <li>Deset startů, zůstane nejlepší.</li>
+          </ul>
+        </article>
+        <article>
+          <h2>Ward</h2>
+          <ul>
+            <li>Strom od jednotlivých dní.</li>
+            <li>Spojí se dvojice, která nejméně zvedne rozptyl.</li>
+            <li>Řez nechá právě k shluků.</li>
+          </ul>
+        </article>
+      </div>
+      <p class="shared">Společné: matice <b>5&nbsp;000 × 24</b> a stejné k.</p>
+    </section>
+
+    <section class="slide" data-notes="k vybírám na k-means dřív, než metody srovnám, a pak ho už neměním podle toho, komu by jiné číslo víc slušelo. Na tři desetinná místa je 0,1013 a 0,1011 skoro remíza. Pravidlo bere přísně vyšší hodnotu. Setrvačnost klesá pořád, nejprudší schod je mezi dvěma a třemi. Absolutní silueta kolem desetiny znamená, že se tvary překrývají. Tři není ostrá mezera v datech.">
+      <p class="kicker">Volba k</p>
+      <h1>Proč právě tři shluky</h1>
+      <div class="kgrid">
+        <div class="kbox pick"><em>zvoleno</em><strong>k = 3</strong><span class="fine">silueta 0,1013</span></div>
+        <div class="kbox"><em>v závěsu</em><strong>k = 7</strong><span class="fine">silueta 0,1011</span></div>
+      </div>
+      <ul class="clean">
+        <li>Mřížka je 2 až 8. Beru tu vyšší siluetu a k už neposouvám.</li>
+        <li>Setrvačnost padá pořád. Nejostřejší schod je mezi 2 a 3.</li>
+        <li>0,10 je málo. Skupiny se překrývají.</li>
+      </ul>
+    </section>
+
+    <section class="slide" data-notes="Jméno je čtecí pomůcka z průměru v kilowatthodinách, ne další model. U noci je v první hodině po půlnoci kolem 3,6 kWh a přes den spadne odběr na desetiny. Úroveň je vysoká, takže to není jen rozsvícená chodba. U rozloženého dne je v noci kolem 0,3 kWh za hodinu a od pozdního rána do večera kolem 0,5. Samostatná ranní špička při k rovno 3 nevznikne. Večer je maximum v hodině 19, kolem 1 kWh. Ward má stejná tři jména, ale noční skupinu menší a ostřejší.">
+      <p class="kicker">k-means · k = 3</p>
+      <h1>Tři tvary dne</h1>
+      <div class="shapes">
+        <article class="shape">
+          <p class="pct">200 dní · 4&nbsp;%</p>
+          <h2>Noční odběr</h2>
+          <p class="kwh">18,7 kWh</p>
+          <div class="mix" role="img" aria-label="64 procent energie v noci, 26 procent ve zbytku dne, 10 procent večer">
+            <i class="n" style="width:64%"></i>
+            <i class="r" style="width:26%"></i>
+            <i class="e" style="width:10%"></i>
+          </div>
+          <ul>
+            <li>Vrchol v 0&nbsp;h, kolem 3,6&nbsp;kWh</li>
+            <li>64&nbsp;% energie mezi 0 a 5</li>
+          </ul>
+        </article>
+        <article class="shape">
+          <p class="pct">2&nbsp;722 dní · 54&nbsp;%</p>
+          <h2>Rozložený den</h2>
+          <p class="kwh">10,5 kWh</p>
+          <div class="mix" role="img" aria-label="16 procent energie v noci, 60 procent ve zbytku dne, 24 procent večer">
+            <i class="n" style="width:16%"></i>
+            <i class="r" style="width:60%"></i>
+            <i class="e" style="width:24%"></i>
+          </div>
+          <ul>
+            <li>Vrchol ve 12&nbsp;h, skoro rovina</li>
+            <li>Ranní špička nevznikla</li>
+          </ul>
+        </article>
+        <article class="shape">
+          <p class="pct">2&nbsp;078 dní · 42&nbsp;%</p>
+          <h2>Večerní špička</h2>
+          <p class="kwh">12,2 kWh</p>
+          <div class="mix" role="img" aria-label="13 procent energie v noci, 49 procent ve zbytku dne, 38 procent večer">
+            <i class="n" style="width:13%"></i>
+            <i class="r" style="width:49%"></i>
+            <i class="e" style="width:38%"></i>
+          </div>
+          <ul>
+            <li>Vrchol v 19&nbsp;h, kolem 1&nbsp;kWh</li>
+            <li>38&nbsp;% energie mezi 17 a 21</li>
+          </ul>
+        </article>
+      </div>
+      <p class="legend"><span><i class="n"></i>noc 0–5</span><span><i class="r"></i>zbytek dne</span><span><i class="e"></i>večer 17–21</span></p>
+      <p class="fine">Podíl energie z průměrného profilu v kWh. Ward najde stejná jména; jeho noc má 148 dní a 20,7&nbsp;kWh.</p>
+    </section>
+
+    <section class="slide" data-notes="Vyšší silueta je lepší, nižší Davies–Bouldin taky. Stabilita se neměří stejně: u k-means jsou to dva samostatné běhy s jedním startem a semeny 42 a 43. U Warda dva podvýběry šedesáti procent, semena 11 a 12, a ARI na průniku dní. Proto 0,934 a 0,259 nejsou totéž cvičení, ale Wardův řez na výběru dní viditelně stojí. ARI mezi metodami je 0,369. Setrvačnost k-means přímo minimalizuje, takže podle ní nerozhoduju. Je 1 194 proti 1 240.">
+      <p class="kicker">Srovnání · k = 3</p>
+      <h1>Který postup sedí líp</h1>
+      <table>
+        <thead>
+          <tr>
+            <th>Metoda</th>
+            <th>Silueta<small>vyšší lépe</small></th>
+            <th>Davies–Bouldin<small>nižší lépe</small></th>
+            <th>Stabilita<small>ARI</small></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="win">
+            <td>k-means</td>
+            <td>0,101</td>
+            <td>2,377</td>
+            <td>0,934</td>
+          </tr>
+          <tr>
+            <td>Ward</td>
+            <td>0,073</td>
+            <td>2,827</td>
+            <td>0,259</td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="call">Shoda obou řezů na týchž dnech: ARI <b>0,369</b>. Stejné jméno neznamená stejný den.</p>
+      <p class="fine">Stabilita se měří jinak. K-means: dva starty. Ward: dva podvýběry 60&nbsp;% profilů. Setrvačnost je 1&nbsp;194 proti 1&nbsp;240 a k-means ji přímo minimalizuje, takže podle ní nerozhoduju.</p>
+    </section>
+
+    <section class="slide" data-notes="Čitelnost by mezi metodami nerozhodla, obě umí tři pojmenovatelné průměry. U k-means je večerní podíl v pracovních dnech asi 42 až 45 procent, v neděli 39 a na jaře 38. Sezóna je meteorologická: zima prosinec až únor, jaro březen až květen, léto červen až srpen. Noční podíl zůstává ve všech sezónách kolem 3 až 5 procent. U Warda je to stejný směr a noční dny jsou ještě víc koncentrované: 148 dní, deset domácností, pět z nich pokryje 96 procent.">
+      <p class="kicker">Čtení</p>
+      <h1>Co z toho plyne</h1>
+      <ul class="clean">
+        <li>Na siluetě, Davies–Bouldinovi i stabilitě je přesvědčivější k-means.</li>
+        <li>Noční dny nejsou rozházené. 200 dní patří 22 domácnostem, pět z nich pokryje 83&nbsp;%.</li>
+      </ul>
+      <div class="strip" aria-label="Podíl večerní špičky u k-means">
+        <div><b>48&nbsp;%</b><span>zima a podzim</span></div>
+        <div><b>34&nbsp;%</b><span>léto</span></div>
+        <div><b>34&nbsp;%</b><span>sobota</span></div>
+      </div>
+      <p class="fine">Podíl večerní špičky, k-means. V pracovním týdnu je to asi 42–45&nbsp;%.</p>
+    </section>
+
+    <section class="slide" data-notes="Když se mě zeptají na zobecnění: nepopisuju všech 5 567 domácností ani roky po roce 2013. Řada měření projektu končí v únoru 2014. Dny jedné domácnosti nejsou nezávislá pozorování, sousední dny si jsou podobné. Licence veřejného archivu je v metadatech nevyplněná, v repozitáři je jen výřez pro tuhle práci.">
+      <p class="kicker">Omezení</p>
+      <h1>Kde je to křehké</h1>
+      <ul class="clean">
+        <li>108 domácností, jeden rok, 5&nbsp;000 z 35&nbsp;959 dní. Není to celý Londýn.</li>
+        <li>Dny jedné domácnosti si jsou podobné. Nejsou to nezávislá pozorování.</li>
+        <li>Normalizace schová úroveň. Noční shluk je jiný tvar a zároveň vyšší součet.</li>
+        <li>Silueta je nízká a k&nbsp;=&nbsp;7 je v závěsu.</li>
+        <li>Svátky a Vánoce 2013 ve vzorku zůstávají.</li>
+      </ul>
+    </section>
+
+    <section class="slide close" data-notes="Shrnu to jednou větou a otevřu otázky. Když padne dotaz na setrvačnost, řeknu, že ji k-means přímo minimalizuje, takže není nestranný rozhodčí. Když padne dotaz na ranní špičku, řeknu, že při třech shlucích nevznikla.">
+      <p class="kicker">Závěr</p>
+      <p class="verdict">Na tomhle vzorku se dny skládají do tří čitelných tvarů a k-means je popisuje stabilněji než Ward.</p>
+      <h1>Děkuji</h1>
+      <p class="lead">Otázky?</p>
+    </section>
+
+  </div>
+  <footer class="chrome">
+    <div class="counter" id="counter">01  /  12</div>
+    <div class="hints">šipky · mezerník · N poznámky · F celá obrazovka</div>
+    <div class="nav">
+      <button type="button" id="prev">Předchozí</button>
+      <button type="button" id="next">Další</button>
+    </div>
+  </footer>
+  <aside class="notes" id="notes">
+    <p class="label">Poznámky k mluvení</p>
+    <p class="body" id="notes-body"></p>
+  </aside>
+</div>
+<script>
+(function () {
+  var slides = Array.prototype.slice.call(document.querySelectorAll(".slide"));
+  var bar = document.getElementById("bar");
+  var counter = document.getElementById("counter");
+  var notes = document.getElementById("notes");
+  var notesBody = document.getElementById("notes-body");
+  var prev = document.getElementById("prev");
+  var next = document.getElementById("next");
+  var index = 0;
+  var notesOn = false;
+
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+
+  function render() {
+    slides.forEach(function (slide, i) {
+      slide.classList.toggle("is-active", i === index);
+    });
+    counter.textContent = pad(index + 1) + "  /  " + pad(slides.length);
+    bar.style.width = ((index + 1) / slides.length * 100) + "%";
+    notesBody.textContent = slides[index].getAttribute("data-notes") || "";
+    prev.disabled = index === 0;
+    next.disabled = index === slides.length - 1;
+    var hash = "#" + (index + 1);
+    if (location.hash !== hash) history.replaceState(null, "", hash);
+  }
+
+  function go(n) {
+    index = Math.max(0, Math.min(slides.length - 1, n));
+    render();
+  }
+
+  prev.addEventListener("click", function () { go(index - 1); });
+  next.addEventListener("click", function () { go(index + 1); });
+
+  document.addEventListener("keydown", function (e) {
+    var onButton = e.target.closest && e.target.closest("button");
+    if (e.key === "ArrowRight" || e.key === "ArrowDown" || e.key === "PageDown") {
+      e.preventDefault();
+      go(index + 1);
+    } else if (e.key === "ArrowLeft" || e.key === "ArrowUp" || e.key === "PageUp") {
+      e.preventDefault();
+      go(index - 1);
+    } else if (e.key === " " && !onButton) {
+      e.preventDefault();
+      go(index + 1);
+    } else if (e.key === "Home") {
+      e.preventDefault();
+      go(0);
+    } else if (e.key === "End") {
+      e.preventDefault();
+      go(slides.length - 1);
+    } else if (e.key === "n" || e.key === "N") {
+      notesOn = !notesOn;
+      notes.classList.toggle("is-open", notesOn);
+    } else if (e.key === "f" || e.key === "F") {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen && document.documentElement.requestFullscreen();
+      } else if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    }
+  });
+
+  var start = parseInt(String(location.hash).replace("#", ""), 10);
+  if (!isNaN(start)) index = Math.max(0, Math.min(slides.length - 1, start - 1));
+  render();
+})();
+</script>
+</body>
+</html>
