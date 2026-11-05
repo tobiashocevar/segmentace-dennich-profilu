@@ -367,7 +367,7 @@
   }
   .strip span { color: var(--muted); font-size: 0.92rem; }
 
-  .close h1 { max-width: 8ch; font-size: clamp(3.2rem, 7vw, 6rem); }
+  .close h1 { max-width: 16ch; font-size: clamp(2.5rem, 5vw, 4.4rem); }
   .verdict {
     margin: 0;
     max-width: 28ch;
@@ -439,72 +439,72 @@
   <div class="progress" aria-hidden="true"><span id="bar"></span></div>
   <div class="stage">
 
-    <section class="slide title is-active" data-notes="Dobrý den. Jsem Tobias Hočevar a tohle je semestrálka ze strojového učení. Vzal jsem dny londýnských domácností a koukal, jestli se podle tvaru odběru samy složí do skupin. Srovnával jsem k-means a Wardovo shlukování.">
+    <section class="slide title is-active" data-notes="Semestrální práce ze Strojového učení 1 srovnává k-means a Wardovo hierarchické shlukování na denních profilech londýnských domácností. Cílem je ověřit, zda se dny podle tvaru odběru rozdělí do opakujících se skupin.">
       <p class="kicker">Strojové učení 1 · varianta B</p>
       <h1>Segmentace denních profilů spotřeby elektřiny</h1>
-      <p class="lead">k-means a Wardovo hierarchické shlukování na dnech londýnských domácností</p>
+      <p class="lead">Srovnání k-means a Wardova hierarchického shlukování na dnech londýnských domácností</p>
       <p class="meta">Rok 2013 · Tobias Hočevar</p>
     </section>
 
-    <section class="slide" data-notes="Nejdřív odkud data jsou a jak z měření udělám jeden den. Pak dva postupy na stejné matici. Nakonec tři tvary a kterému číslu víc věřím.">
+    <section class="slide" data-notes="Nejprve původ dat a definice jednoho dne. Poté dvě metody na stejné matici. Nakonec tři výsledné tvary a srovnání, která metoda je na zvolených kritériích přesvědčivější.">
       <p class="kicker">Osnova</p>
-      <h1>Co budu říkat</h1>
+      <h1>Struktura</h1>
       <ol class="agenda">
-        <li><span>01</span>Odkud data jsou a co je jeden den</li>
-        <li><span>02</span>Dva postupy na stejné matici</li>
-        <li><span>03</span>Tři tvary, které z toho vyjdou</li>
-        <li><span>04</span>Kterému postupu na tomhle vzorku víc věřím</li>
+        <li><span>01</span>Původ dat a definice jednoho dne</li>
+        <li><span>02</span>Dvě metody na stejné matici</li>
+        <li><span>03</span>Tři výsledné tvary profilu</li>
+        <li><span>04</span>Srovnání metod na daném vzorku</li>
       </ol>
     </section>
 
-    <section class="slide" data-notes="Správné štítky k dnům nejsou, takže to není klasifikace a neuronové sítě tu nejsou. Ptám se, jestli se opakuje tvar dne, a který z těch dvou postupů ho na stejných datech popíše líp. Líp pro mě znamená vyšší siluetu, nižší Davies–Bouldin, stabilnější řez a čitelný průměr.">
+    <section class="slide" data-notes="Ke dnům neexistují správné štítky, nejde tedy o klasifikaci a neuronové sítě se nepoužívají. Práce se ptá, zda se tvar dne opakuje a která metoda ho na stejných datech popíše lépe. Lepší popis znamená vyšší siluetu, nižší Davies–Bouldin, stabilnější řez a čitelný průměr.">
       <p class="kicker">Otázka</p>
-      <p class="ask">Dá se den domácnosti zařadit podle toho, kdy bere proud?</p>
-      <p class="ask-sub">Čekal jsem ranní špičku, večerní špičku nebo spíš plochý den. A udělá to líp k-means, nebo Ward?</p>
+      <p class="ask">Lze den domácnosti zařadit podle toho, kdy odebírá elektřinu?</p>
+      <p class="ask-sub">Očekávané tvary jsou ranní špička, večerní špička, nebo spíše plochý den. Na stejných datech se srovnává k-means a Ward.</p>
     </section>
 
-    <section class="slide" data-notes="Zdroj je Low Carbon London, veřejně London Datastore. Celý archiv má desítky gigabajtů, já beru čtyři souvislé bloky. Tarif je jen Std. Dynamický dToU, kde se v roce 2013 měnila cena přes den, v těch blocích není. Poslední domácnost v bloku 3 je utnutá, MAC000131, tu vynechávám. Těch pět tisíc dní pokrývá 107 ze 108 domácností.">
+    <section class="slide" data-notes="Zdrojem je Low Carbon London, veřejně London Datastore. Z archivu o desítkách gigabajtů vstupují čtyři souvislé bloky. Tarif je pouze Std. Dynamický tarif dToU, u kterého se v roce 2013 měnila cena během dne, v těchto blocích není. Poslední domácnost v bloku 3, MAC000131, je neúplná a je vynechána. Pět tisíc dní pokrývá 107 ze 108 domácností.">
       <p class="kicker">Data</p>
-      <h1>Odkud jsou data</h1>
+      <h1>Zdroj dat</h1>
       <div class="stats">
         <div class="stat"><b>108</b><span>domácností</span></div>
         <div class="stat"><b>35&nbsp;959</b><span>celých dní v roce 2013</span></div>
         <div class="stat"><b>5&nbsp;000</b><span>dní ve vzorku, semeno 42</span></div>
-        <div class="stat"><b>Std</b><span>jen standardní tarif</span></div>
+        <div class="stat"><b>Std</b><span>pouze standardní tarif</span></div>
       </div>
       <ul class="clean">
         <li>Chytré elektroměry, půlhodinová spotřeba v kWh. Projekt Low Carbon London.</li>
-        <li>Domácnosti nejsou los z 5&nbsp;567. Je to souvislý úsek bloků 0–3.</li>
+        <li>Nejde o náhodný výběr z 5&nbsp;567 domácností, ale o souvislý úsek bloků 0–3.</li>
       </ul>
     </section>
 
-    <section class="slide" data-notes="Hodina 0 je součet 00:00 a 00:30, hodina 23 je 23:00 a 23:30. Když v dni chybí razítko, je tam Null, záporná hodnota nebo duplicita, den zahodím. Doplněný průměr by byla hodnota, kterou elektroměr nezměřil. Nulový den taky letí pryč, protože ho není čím vydělit. Po dělení má každý vektor délku 1, takže dva dny se stejným tvarem a jinou úrovní spadnou k sobě.">
+    <section class="slide" data-notes="Hodina 0 je součet 00:00 a 00:30, hodina 23 je 23:00 a 23:30. Den s chybějícím razítkem, hodnotou Null, zápornou hodnotou nebo duplicitou se vyřazuje. Doplněný průměr by byla hodnota, kterou elektroměr nezměřil. Nulový den se vyřazuje rovněž, protože ho není čím vydělit. Po dělení má každý vektor délku 1, takže dva dny se stejným tvarem a jinou úrovní spadnou do stejné skupiny.">
       <p class="kicker">Jednotka</p>
-      <h1>Co je jeden den</h1>
+      <h1>Definice jednoho dne</h1>
       <div class="flow">
         <div class="step"><b>48 půlhodin</b><span>surové kWh</span></div>
         <div class="arrow" aria-hidden="true">→</div>
-        <div class="step"><b>24 hodin</b><span>součet dvou půlek</span></div>
+        <div class="step"><b>24 hodin</b><span>součet dvou půlhodin</span></div>
         <div class="arrow" aria-hidden="true">→</div>
         <div class="step"><b>délka 1</b><span>dělení L2 normou</span></div>
       </div>
       <ul class="clean">
-        <li>Jednotka je domácnost-den. Den s dírou se nedoplňuje.</li>
-        <li>Shluk má chytit tvar, ne velikost bytu.</li>
-        <li>Den v týdnu a roční období do matice nepatří. Koukám na ně až potom.</li>
+        <li>Jednotkou je domácnost-den. Den s chybějícím měřením se nedoplňuje.</li>
+        <li>Shluk má zachytit tvar profilu, nikoli absolutní velikost spotřeby.</li>
+        <li>Den v týdnu a roční období do matice nevstupují. Slouží až k interpretaci.</li>
       </ul>
     </section>
 
-    <section class="slide" data-notes="Obě metody dostanou tutéž matici a totéž k. U k-means je hlavní model deset startů a semeno 42. Jiné semeno není druhá metoda, to je jen kontrola stability. Ward staví strom na celé matici a řez ho nechá na třech shlucích. Dendrogram v práci ukazuje jen posledních dvanáct spojení.">
+    <section class="slide" data-notes="Obě metody dostanou tutéž matici a totéž k. U k-means má hlavní model deset startů a semeno 42. Jiné semeno není druhá metoda, ale kontrola stability. Ward staví strom na celé matici a řez ponechá tři shluky. Dendrogram v práci ukazuje jen posledních dvanáct spojení.">
       <p class="kicker">Metody</p>
-      <h1>Dva postupy, stejná pravidla</h1>
+      <h1>Dvě metody, stejná pravidla</h1>
       <div class="pair">
         <article>
           <h2>k-means</h2>
           <ul>
-            <li>Den jde k nejbližšímu středu.</li>
-            <li>Střed se posune do průměru svých dní.</li>
-            <li>Deset startů, zůstane nejlepší.</li>
+            <li>Den se přiřadí k nejbližšímu středu.</li>
+            <li>Střed se posune na průměr svých dní.</li>
+            <li>Z deseti startů zůstane nejlepší.</li>
           </ul>
         </article>
         <article>
@@ -512,28 +512,28 @@
           <ul>
             <li>Strom od jednotlivých dní.</li>
             <li>Spojí se dvojice, která nejméně zvedne rozptyl.</li>
-            <li>Řez nechá právě k shluků.</li>
+            <li>Řez ponechá právě k shluků.</li>
           </ul>
         </article>
       </div>
       <p class="shared">Společné: matice <b>5&nbsp;000 × 24</b> a stejné k.</p>
     </section>
 
-    <section class="slide" data-notes="k vybírám na k-means dřív, než metody srovnám, a pak ho už neměním podle toho, komu by jiné číslo víc slušelo. Na tři desetinná místa je 0,1013 a 0,1011 skoro remíza. Pravidlo bere přísně vyšší hodnotu. Setrvačnost klesá pořád, nejprudší schod je mezi dvěma a třemi. Absolutní silueta kolem desetiny znamená, že se tvary překrývají. Tři není ostrá mezera v datech.">
+    <section class="slide" data-notes="Hodnota k se volí na k-means před srovnáním metod a dále se nemění podle toho, které metodě by jiné číslo více vyhovovalo. Na tři desetinná místa jsou 0,1013 a 0,1011 téměř vyrovnané. Pravidlo bere přísně vyšší hodnotu. Setrvačnost klesá v celém rozsahu, nejprudší pokles je mezi dvěma a třemi. Absolutní silueta kolem desetiny znamená, že se tvary překrývají. Tři shluky nejsou ostrou mezerou v datech.">
       <p class="kicker">Volba k</p>
       <h1>Proč právě tři shluky</h1>
       <div class="kgrid">
         <div class="kbox pick"><em>zvoleno</em><strong>k = 3</strong><span class="fine">silueta 0,1013</span></div>
-        <div class="kbox"><em>v závěsu</em><strong>k = 7</strong><span class="fine">silueta 0,1011</span></div>
+        <div class="kbox"><em>druhé v pořadí</em><strong>k = 7</strong><span class="fine">silueta 0,1011</span></div>
       </div>
       <ul class="clean">
-        <li>Mřížka je 2 až 8. Beru tu vyšší siluetu a k už neposouvám.</li>
-        <li>Setrvačnost padá pořád. Nejostřejší schod je mezi 2 a 3.</li>
-        <li>0,10 je málo. Skupiny se překrývají.</li>
+        <li>Mřížka je 2 až 8. Volí se vyšší silueta a hodnota k se dále nemění.</li>
+        <li>Setrvačnost klesá v celém rozsahu. Nejostřejší pokles je mezi 2 a 3.</li>
+        <li>Hodnota 0,10 je nízká: skupiny se překrývají.</li>
       </ul>
     </section>
 
-    <section class="slide" data-notes="Jméno je čtecí pomůcka z průměru v kilowatthodinách, ne další model. U noci je v první hodině po půlnoci kolem 3,6 kWh a přes den spadne odběr na desetiny. Úroveň je vysoká, takže to není jen rozsvícená chodba. U rozloženého dne je v noci kolem 0,3 kWh za hodinu a od pozdního rána do večera kolem 0,5. Samostatná ranní špička při k rovno 3 nevznikne. Večer je maximum v hodině 19, kolem 1 kWh. Ward má stejná tři jména, ale noční skupinu menší a ostřejší.">
+    <section class="slide" data-notes="Název je čtecí pomůcka z průměru v kilowatthodinách, nikoli další model. U nočního odběru je v první hodině po půlnoci kolem 3,6 kWh a přes den klesne odběr na desetiny. Úroveň je vysoká, nejde tedy jen o osvětlení chodby. U rozloženého dne je v noci kolem 0,3 kWh za hodinu a od pozdního rána do večera kolem 0,5. Samostatná ranní špička při k rovném 3 nevznikne. Večer je maximum v hodině 19, kolem 1 kWh. Ward nachází stejné tři názvy, noční skupina je však menší a ostřejší.">
       <p class="kicker">k-means · k = 3</p>
       <h1>Tři tvary dne</h1>
       <div class="shapes">
@@ -562,7 +562,7 @@
           </div>
           <ul>
             <li>Vrchol ve 12&nbsp;h, skoro rovina</li>
-            <li>Ranní špička nevznikla</li>
+            <li>Samostatná ranní špička nevznikla</li>
           </ul>
         </article>
         <article class="shape">
@@ -581,12 +581,12 @@
         </article>
       </div>
       <p class="legend"><span><i class="n"></i>noc 0–5</span><span><i class="r"></i>zbytek dne</span><span><i class="e"></i>večer 17–21</span></p>
-      <p class="fine">Podíl energie z průměrného profilu v kWh. Ward najde stejná jména; jeho noc má 148 dní a 20,7&nbsp;kWh.</p>
+      <p class="fine">Podíl energie z průměrného profilu v kWh. Ward nachází stejné názvy; jeho noční skupina má 148 dní a 20,7&nbsp;kWh.</p>
     </section>
 
-    <section class="slide" data-notes="Vyšší silueta je lepší, nižší Davies–Bouldin taky. Stabilita se neměří stejně: u k-means jsou to dva samostatné běhy s jedním startem a semeny 42 a 43. U Warda dva podvýběry šedesáti procent, semena 11 a 12, a ARI na průniku dní. Proto 0,934 a 0,259 nejsou totéž cvičení, ale Wardův řez na výběru dní viditelně stojí. ARI mezi metodami je 0,369. Setrvačnost k-means přímo minimalizuje, takže podle ní nerozhoduju. Je 1 194 proti 1 240.">
+    <section class="slide" data-notes="Vyšší silueta je lepší, nižší Davies–Bouldin rovněž. Stabilita se neměří stejně: u k-means jde o dva samostatné běhy s jedním startem a semeny 42 a 43. U Warda o dva podvýběry šedesáti procent, semena 11 a 12, a ARI na průniku dní. Hodnoty 0,934 a 0,259 proto nejsou totéž cvičení, Wardův řez na výběru dní je však zřetelně méně stabilní. ARI mezi metodami je 0,369. Setrvačnost k-means přímo minimalizuje, proto není rozhodovacím kritériem. Činí 1 194 proti 1 240.">
       <p class="kicker">Srovnání · k = 3</p>
-      <h1>Který postup sedí líp</h1>
+      <h1>Která metoda vychází lépe</h1>
       <table>
         <thead>
           <tr>
@@ -611,16 +611,16 @@
           </tr>
         </tbody>
       </table>
-      <p class="call">Shoda obou řezů na týchž dnech: ARI <b>0,369</b>. Stejné jméno neznamená stejný den.</p>
-      <p class="fine">Stabilita se měří jinak. K-means: dva starty. Ward: dva podvýběry 60&nbsp;% profilů. Setrvačnost je 1&nbsp;194 proti 1&nbsp;240 a k-means ji přímo minimalizuje, takže podle ní nerozhoduju.</p>
+      <p class="call">Shoda obou řezů na týchž dnech: ARI <b>0,369</b>. Stejný název neznamená stejný den.</p>
+      <p class="fine">Stabilita se měří odlišně. K-means: dva starty. Ward: dva podvýběry 60&nbsp;% profilů. Setrvačnost je 1&nbsp;194 proti 1&nbsp;240. K-means ji přímo minimalizuje, proto není rozhodovacím kritériem.</p>
     </section>
 
-    <section class="slide" data-notes="Čitelnost by mezi metodami nerozhodla, obě umí tři pojmenovatelné průměry. U k-means je večerní podíl v pracovních dnech asi 42 až 45 procent, v neděli 39 a na jaře 38. Sezóna je meteorologická: zima prosinec až únor, jaro březen až květen, léto červen až srpen. Noční podíl zůstává ve všech sezónách kolem 3 až 5 procent. U Warda je to stejný směr a noční dny jsou ještě víc koncentrované: 148 dní, deset domácností, pět z nich pokryje 96 procent.">
-      <p class="kicker">Čtení</p>
-      <h1>Co z toho plyne</h1>
+    <section class="slide" data-notes="Čitelnost by mezi metodami nerozhodla, obě dávají tři pojmenovatelné průměry. U k-means je večerní podíl v pracovních dnech asi 42 až 45 procent, v neděli 39 a na jaře 38. Sezóna je meteorologická: zima prosinec až únor, jaro březen až květen, léto červen až srpen. Noční podíl zůstává ve všech sezónách kolem 3 až 5 procent. U Warda je směr stejný a noční dny jsou ještě více koncentrované: 148 dní, deset domácností, pět z nich pokryje 96 procent.">
+      <p class="kicker">Interpretace</p>
+      <h1>Závěry</h1>
       <ul class="clean">
-        <li>Na siluetě, Davies–Bouldinovi i stabilitě je přesvědčivější k-means.</li>
-        <li>Noční dny nejsou rozházené. 200 dní patří 22 domácnostem, pět z nich pokryje 83&nbsp;%.</li>
+        <li>Na siluetě, Davies–Bouldinově indexu i stabilitě vychází lépe k-means.</li>
+        <li>Noční dny nejsou rozptýlené. 200 dní patří 22 domácnostem a pět z nich pokryje 83&nbsp;%.</li>
       </ul>
       <div class="strip" aria-label="Podíl večerní špičky u k-means">
         <div><b>48&nbsp;%</b><span>zima a podzim</span></div>
@@ -630,23 +630,23 @@
       <p class="fine">Podíl večerní špičky, k-means. V pracovním týdnu je to asi 42–45&nbsp;%.</p>
     </section>
 
-    <section class="slide" data-notes="Když se mě zeptají na zobecnění: nepopisuju všech 5 567 domácností ani roky po roce 2013. Řada měření projektu končí v únoru 2014. Dny jedné domácnosti nejsou nezávislá pozorování, sousední dny si jsou podobné. Licence veřejného archivu je v metadatech nevyplněná, v repozitáři je jen výřez pro tuhle práci.">
+    <section class="slide" data-notes="Na dotaz ke zobecnění: výsledek nepopisuje všech 5 567 domácností ani roky po roce 2013. Řada měření projektu končí v únoru 2014. Dny jedné domácnosti nejsou nezávislá pozorování, sousední dny si jsou podobné. Licence veřejného archivu je v metadatech nevyplněná, v repozitáři je pouze výřez pro tuto práci.">
       <p class="kicker">Omezení</p>
-      <h1>Kde je to křehké</h1>
+      <h1>Hranice platnosti</h1>
       <ul class="clean">
-        <li>108 domácností, jeden rok, 5&nbsp;000 z 35&nbsp;959 dní. Není to celý Londýn.</li>
-        <li>Dny jedné domácnosti si jsou podobné. Nejsou to nezávislá pozorování.</li>
-        <li>Normalizace schová úroveň. Noční shluk je jiný tvar a zároveň vyšší součet.</li>
-        <li>Silueta je nízká a k&nbsp;=&nbsp;7 je v závěsu.</li>
+        <li>108 domácností, jeden rok, 5&nbsp;000 z 35&nbsp;959 dní. Výsledek nelze zobecnit na celý Londýn.</li>
+        <li>Dny jedné domácnosti jsou si podobné. Nejde o nezávislá pozorování.</li>
+        <li>Normalizace potlačí úroveň. Noční shluk má jiný tvar a zároveň vyšší součet.</li>
+        <li>Silueta je nízká a k&nbsp;=&nbsp;7 je těsně druhé v pořadí.</li>
         <li>Svátky a Vánoce 2013 ve vzorku zůstávají.</li>
       </ul>
     </section>
 
-    <section class="slide close" data-notes="Shrnu to jednou větou a otevřu otázky. Když padne dotaz na setrvačnost, řeknu, že ji k-means přímo minimalizuje, takže není nestranný rozhodčí. Když padne dotaz na ranní špičku, řeknu, že při třech shlucích nevznikla.">
+    <section class="slide close" data-notes="Závěr je jedna věta, poté prostor pro otázky. Na dotaz k setrvačnosti: k-means ji přímo minimalizuje, proto není nestranným kritériem. Na dotaz k ranní špičce: při třech shlucích nevznikla.">
       <p class="kicker">Závěr</p>
-      <p class="verdict">Na tomhle vzorku se dny skládají do tří čitelných tvarů a k-means je popisuje stabilněji než Ward.</p>
-      <h1>Děkuji</h1>
-      <p class="lead">Otázky?</p>
+      <p class="verdict">Na tomto vzorku se dny skládají do tří čitelných tvarů a k-means je popisuje stabilněji než Ward.</p>
+      <h1>Děkuji za pozornost</h1>
+      <p class="lead">Prostor pro otázky</p>
     </section>
 
   </div>
